@@ -34,7 +34,7 @@ def pixelate_and_quantize(image, pixel_size, n_colors, methods, interpolation, p
                 quantized_img = median_cut_quantization(pixelated_img, n_colors)
             elif method == "Floyd-Steinberg Dithering":
                 quantized_img = floyd_steinberg_dithering(pixelated_img, n_colors)
-            elif method == "Median Cut (Perceptual Weighting)":
+            elif method == "MedianCut(PerceptualWeighting)":
                 quantized_img = median_cut_perceptual_weighting(pixelated_img, n_colors)
             else:
                 raise ValueError(f"Unknown quantization method: {method}")
