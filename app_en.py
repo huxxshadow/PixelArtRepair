@@ -79,7 +79,7 @@ def gradio_interface():
                 color_slider = gr.Slider(minimum=2, maximum=128, value=16, step=1, label="Choose Number of Colors")
 
                 method_checkboxes = gr.CheckboxGroup(
-                    choices=["K-Means", "Median Cut", "Floyd-Steinberg Dithering", "Median Cut (Perceptual Weighting)"],
+                    choices=["K-Means", "Median Cut", "Floyd-Steinberg Dithering", "MedianCut(PerceptualWeighting)"],
                     value=["K-Means"],
                     label="Select Color Quantization Methods"
                 )
