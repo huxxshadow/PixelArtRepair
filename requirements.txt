@@ -1,0 +1,4 @@
+gradio==4.44.0
+numpy==2.0.2
+pillow==10.4.0
+scikit-learn==1.5.2
