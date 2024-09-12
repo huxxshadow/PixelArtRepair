@@ -9,6 +9,7 @@ from color_quantization import (
 from pixelation import pixelate_image, mosaic_pixelation, oil_paint_pixelation, hierarchical_pixelation
 import numpy as np
 from collections import Counter
+import math
 
 
 # 定义像素化和颜色量化处理函数
@@ -76,30 +77,25 @@ def gradio_interface():
                     label="选择像素化方法"
                 )
 
-        # 创建一个空的输出 Image 组件
-        image_outputs = [gr.Image(label=f"像素化和量化后的图片 {i + 1}", visible=False) for i in range(8)]
         btn = gr.Button("生成像素化图片")
 
-        # 点击按钮时，动态更新输出图像的数量
-        def update_image_outputs(image, pixel_size, n_colors, methods, interpolation, pixelation_types):
-            # 计算需要的输出数量
+        @gr.render(inputs=[image_input,pixel_size_slider,color_slider, method_checkboxes, interpolation_radio,pixelation_checkboxes], triggers=[btn.click])
+        def show_pictures(img_input,pixel_size,n_colors,methods, interpolation, pixelation_types):
             num_outputs = len(methods) * len(pixelation_types)
+            num_outputs = min(num_outputs, 16)
+            images = pixelate_and_quantize(img_input, pixel_size, n_colors, methods, interpolation, pixelation_types)
+            cols = math.ceil(math.sqrt(num_outputs))
+            rows = math.ceil(num_outputs / cols)
+            for i in range(rows):
+                single_row= gr.Row()
+                with single_row:
+                    for j in range(cols):
+                        single_col = gr.Column()
+                        idx = i * cols + j
+                        with single_col:
+                            if idx < num_outputs:
+                                gr.Image(images[idx],label=f"像素化和量化后的图片 {idx + 1}")
 
-            # 获取所有生成的图像
-            images = pixelate_and_quantize(image, pixel_size, n_colors, methods, interpolation, pixelation_types)
-
-            # 用 update 使得相应数量的输出组件可见
-            visible_outputs = [gr.update(visible=True, value=img) for img in images]
-            hidden_outputs = [gr.update(visible=False) for _ in range(8 - num_outputs)]
-
-            # 返回可见输出和隐藏输出
-            return visible_outputs + hidden_outputs
-
-        # 使用 click 函数生成多个输出
-        btn.click(fn=update_image_outputs,
-                  inputs=[image_input, pixel_size_slider, color_slider, method_checkboxes, interpolation_radio,
-                          pixelation_checkboxes],
-                  outputs=image_outputs)
 
     return demo
 
