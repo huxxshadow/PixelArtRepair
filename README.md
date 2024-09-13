@@ -31,8 +31,10 @@ You can experience the tool online:
 ## 效果对比图 / Example Comparison
 
 以下展示了通过本工具对图像进行像素化处理的效果对比：
+(放大后可明显观察出差别)
 
 Below is a comparison of images processed with pixelation using this tool:
+(The difference can be clearly observed when zoomed in)
 
   **示例对比图 / Example Images**：
 
