@@ -1,11 +1,10 @@
 import gradio as gr
-from color_quantization import (
+from color_quantization_GPU import (
     kmeans_quantization,
     median_cut_quantization,
     floyd_steinberg_dithering,
     median_cut_perceptual_weighting
 )
-# from color_quantization_GPU import kmeans_quantization
 from pixelation import pixelate_image, mosaic_pixelation, oil_paint_pixelation, hierarchical_pixelation
 import math
 
