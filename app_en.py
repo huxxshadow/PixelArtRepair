@@ -69,7 +69,8 @@ def gradio_interface():
 
                 Copyright © 2024
                 """)
-
+        with gr.Row():
+            gr.Image(value="Example.png", show_download_button=True,interactive=False,show_fullscreen_button=False)
         with gr.Row():
             with gr.Column():
                 image_input = gr.Image(type="pil", label="Upload Image")

@@ -19,6 +19,7 @@ def pixelate_image(image, pixel_size, interpolation):
 
     # 获取原图像的尺寸
     width, height = img.size
+    pixel_size = round(min(width,height)/1024)*pixel_size
 
     # 选择插值方式
     if interpolation == "Nearest":
@@ -61,6 +62,7 @@ def mosaic_pixelation(image, pixel_size):
     img = image.convert("RGB")
     img_np = np.array(img)
     h, w, _ = img_np.shape
+    pixel_size = round(min(w, h) / 1024) * pixel_size
 
     for y in range(0, h, pixel_size):
         for x in range(0, w, pixel_size):
@@ -85,7 +87,7 @@ def oil_paint_pixelation(image, pixel_size):
     img = image.convert("RGB")
     img_np = np.array(img)
     h, w, _ = img_np.shape
-
+    pixel_size = round(min(w, h) / 1024) * pixel_size
     for y in range(0, h, pixel_size):
         for x in range(0, w, pixel_size):
             block = img_np[y:y + pixel_size, x:x + pixel_size]
@@ -111,6 +113,9 @@ def hierarchical_pixelation(image, min_pixel_size, max_pixel_size):
     img = image.convert("RGB")
     img_np = np.array(img)
     h, w, _ = img_np.shape
+    min_pixel_size = round(min(w, h) / 1024) * min_pixel_size
+    max_pixel_size = round(min(w, h) / 1024) * max_pixel_size
+
     step = max((max_pixel_size - min_pixel_size) // (w // min_pixel_size), 1)
 
     for pixel_size in range(min_pixel_size, max_pixel_size + 1, step):

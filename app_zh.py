@@ -13,6 +13,7 @@ import math
 def pixelate_and_quantize(image, pixel_size, n_colors, methods, interpolation, pixelation_types):
     results = []
 
+
     # 根据用户选择的像素化方法进行像素化处理
     for pixelation_type in pixelation_types:
         if pixelation_type == "Classic Nearest Neighbor":
@@ -67,6 +68,8 @@ def gradio_interface():
 
                 版权所有 © 2024
                 """)
+        with gr.Row():
+            gr.Image(value="Example.png", show_download_button=True,interactive=False,show_fullscreen_button=False)
 
         with gr.Row():
             with gr.Column():
