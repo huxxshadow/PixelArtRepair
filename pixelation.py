@@ -2,7 +2,7 @@ from PIL import Image
 import numpy as np
 from collections import Counter
 
-def pixelate_image(image, pixel_size, interpolation):
+def pixelate_image(image, pixel_size, interpolation="Nearest"):
     """
     对图像进行像素化。
 
