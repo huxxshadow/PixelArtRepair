@@ -7,7 +7,7 @@ import gol
 
 # K-Means 颜色量化（使用 cuML 加速）
 # 完全在 GPU 上进行 K-Means 颜色量化
-def kmeans_quantization(image, n_colors):
+def kmeans_quantization_get(image, n_colors):
     # 将图像数据转换为 RGB 并转为 cuPy 数组
     img = image.convert("RGB")
     img_np = cp.asarray(img)  # 直接将 NumPy 数组转换为 cuPy 数组
@@ -23,7 +23,20 @@ def kmeans_quantization(image, n_colors):
     # 获取聚类的质心和标签（这些仍然是 cuPy 数组）
     centroids = kmeans.cluster_centers_
     labels = kmeans.labels_
+    gol.set_value("labels", labels)
 
+    return cp.asnumpy(centroids)
+
+
+def kmeans_quantization_rebuild(centroids):
+    image = gol.get_value("pixelated_img")
+    # 将图像数据转换为 RGB 并转为 cuPy 数组
+    img = image.convert("RGB")
+    img_np = cp.asarray(img)  # 直接将 NumPy 数组转换为 cuPy 数组
+    w, h, d = img_np.shape
+    labels = gol.get_value("labels")
+
+    centroids=cp.asarray(centroids)
     # 使用质心重建量化后的图像
     quantized_img_flat = centroids[labels]
 
@@ -39,6 +52,6 @@ def kmeans_quantization(image, n_colors):
     gol.set_value('img', quantized_img_uint8)
 
 
-    return quantized_img_uint8, cp.asnumpy(centroids)
+    return quantized_img_uint8
     # 使用 PIL 将 NumPy 数组转换为图像
     # return Image.fromarray(quantized_img_uint8), cp.asnumpy(centroids)

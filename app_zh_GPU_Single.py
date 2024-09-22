@@ -1,5 +1,5 @@
 import gradio as gr
-from color_quantization_GPU_single import kmeans_quantization
+from color_quantization_GPU_single import kmeans_quantization_get,kmeans_quantization_rebuild
 from pixelation import pixelate_image
 from PIL import Image
 import numpy as np
@@ -7,14 +7,14 @@ import cupy as cp
 import gol
 gol._init()
 # 定义像素化和颜色量化处理函数
-def pixelate_and_quantize(image, pixel_size, n_colors):
-    # 只保留 Classic Nearest Neighbor 像素化方法
-    pixelated_img = pixelate_image(image, pixel_size)
-
-    # 只保留 K-Means 颜色量化
-    quantized_img, centroids = kmeans_quantization(pixelated_img, n_colors)
-
-    return quantized_img, centroids
+# def pixelate_and_quantize(image, pixel_size, n_colors):
+#     # 只保留 Classic Nearest Neighbor 像素化方法
+#     pixelated_img = pixelate_image(image, pixel_size)
+#
+#     # 只保留 K-Means 颜色量化
+#     quantized_img, centroids = kmeans_quantization(pixelated_img, n_colors)
+#
+#     return quantized_img, centroids
 
 
 def apply_selected_colors(image, selected_colors, tolerance=3):
@@ -53,8 +53,17 @@ def apply_selected_colors(image, selected_colors, tolerance=3):
 def rgb_to_hex(r, g, b):
     # 使用 f-string 格式化确保每个值转为两位十六进制数
     return f'#{r:02x}{g:02x}{b:02x}'
+def hex_to_rgb(hex_color):
+    # 从十六进制字符串中提取 R, G, B 值
+    r = int(hex_color[1:3], 16)
+    g = int(hex_color[3:5], 16)
+    b = int(hex_color[5:], 16)
+    return r, g, b
 def rgb_list_to_hex(rgb_list):
     return [rgb_to_hex(r, g, b) for r, g, b in rgb_list]
+
+def hex_list_to_rgb(hex_list):
+    return [hex_to_rgb(hex_color) for hex_color in hex_list]
 
 import colorsys
 
@@ -89,14 +98,68 @@ def gradio_interface():
                 pixel_size_slider = gr.Slider(minimum=2, maximum=100, value=10, step=1, label="选择像素块大小")
                 color_slider = gr.Slider(minimum=2, maximum=128, value=16, step=1, label="选择颜色数量")
 
-        btn = gr.Button("生成像素化图片")
+        btn1 = gr.Button("量化颜色")
+
         modified_img = gr.Image(visible=True,type="numpy")
+        color_quantization_checkboxes=gr.CheckboxGroup(visible=True)
+
+        @gr.render(inputs=[], triggers=[color_quantization_checkboxes.change])
+        def on_Colors_change():
+            colors_cen = gol.get_value("raw_centroids")
+            colors_16 = rgb_list_to_hex(colors_cen)
+            picker_list = []
+            with gr.Row():
+                for i in range(len(colors_16)):
+                    picker=gr.ColorPicker(value=colors_16[i], label=f"颜色{i}", interactive=True)
+                    picker_list.append(picker)
+            gol.set_value("picker_list", picker_list)
+            btn2.click(
+                on_generate_img,
+                inputs=gol.get_value("picker_list"),
+                outputs=[modified_img, color_checkboxes])
+
+
+        btn2 = gr.Button("生成像素化图片")
 
         color_checkboxes = gr.CheckboxGroup(visible=True)
 
-        def on_generate(img_input, pixel_size, n_colors):
+
+
+        def on_generate_color(img_input, pixel_size, n_colors):
+            pixelated_img = pixelate_image(img_input, pixel_size)
+            gol.set_value("pixelated_img", pixelated_img)
+            centroids = kmeans_quantization_get(pixelated_img, n_colors)
+            int_centroids = [tuple(map(int, centroid)) for centroid in centroids]
+            gol.set_value("raw_centroids", int_centroids)
+            color_choices = [(str(i), str(color)) for i, color in enumerate(int_centroids)]
+
+            return gr.CheckboxGroup(
+                choices=color_choices,
+                interactive=False,
+                value=[str(color) for color in int_centroids]
+            )
+
+        btn1.click(
+            on_generate_color,
+            inputs=[image_input, pixel_size_slider, color_slider],
+            outputs=[color_quantization_checkboxes]
+        )
+
+
+
+
+
+
+
+
+
+        def on_generate_img(*args):
+
+            new_centroids=list(args)
             # 对输入图像进行像素化和量化
-            quantized_img, centroids = pixelate_and_quantize(img_input, pixel_size, n_colors)
+            centroids = hex_list_to_rgb(new_centroids)
+
+            quantized_img = kmeans_quantization_rebuild(centroids)
 
             # 将颜色转换为整数元组，并存储在全局变量中
             int_centroids = [tuple(map(int, centroid)) for centroid in centroids]
@@ -117,11 +180,11 @@ def gradio_interface():
             )
 
         # 点击按钮时调用 on_generate 函数
-        btn.click(
-            on_generate,
-            inputs=[image_input, pixel_size_slider, color_slider],
-            outputs=[modified_img, color_checkboxes]
-        )
+        # btn2.click(
+        #     on_generate_img,
+        #     inputs=gol.get_value("picker_list"),
+        #     outputs=[modified_img, color_checkboxes]
+        # )
         @gr.render(inputs=[], triggers=[color_checkboxes.change])
         def on_Colors_change():
             colors_cen= gol.get_value("colors")
@@ -129,14 +192,14 @@ def gradio_interface():
             with gr.Row():
                 for i in range(len(colors_16)):
                     gr.ColorPicker(value=colors_16[i],label=f"颜色{i}",interactive=False)
+
         modify_btn = gr.Button("应用选择的颜色")
-        final_img = gr.Image(visible=True,type="numpy")
+        final_img = gr.Image(visible=True,format="png")
 
 
-        # @gr.render(inputs=[modified_img, color_checkboxes], triggers=[modify_btn.click])
+
+
         def on_apply_colors(selected_colors):
-            # selected_colors = [tuple(color.split(',')) for color in selected_colors]
-
             img = apply_selected_colors(gol.get_value("img"), selected_colors)
             return img
 
