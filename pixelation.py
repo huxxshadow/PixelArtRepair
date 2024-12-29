@@ -16,7 +16,11 @@ def pixelate_image(image, pixel_size, interpolation="Nearest"):
     """
     img = image.convert("RGB")
     width, height = img.size
-    pixel_size = max(1, round(min(width, height) / 1024) * pixel_size)
+
+    # 使用比例调整 pixel_size，但确保至少为 1
+    # 基准值 512 可根据需要调整
+    scale_factor = max(1, min(width, height) // 512)
+    adjusted_pixel_size = max(1, pixel_size * scale_factor)
 
     if interpolation == "Nearest":
         resample_method = Image.NEAREST
@@ -29,8 +33,12 @@ def pixelate_image(image, pixel_size, interpolation="Nearest"):
     else:
         raise ValueError(f"未知的插值方法: {interpolation}")
 
+    # 确保输出尺寸至少为1x1
+    small_width = max(1, width // adjusted_pixel_size)
+    small_height = max(1, height // adjusted_pixel_size)
+
     small_img = img.resize(
-        (width // pixel_size, height // pixel_size),
+        (small_width, small_height),
         resample=resample_method
     )
 
@@ -55,13 +63,16 @@ def mosaic_pixelation(image, pixel_size):
     img = image.convert("RGB")
     img_np = np.array(img)
     h, w, _ = img_np.shape
-    pixel_size = max(1, round(min(w, h) / 1024) * pixel_size)
 
-    for y in range(0, h, pixel_size):
-        for x in range(0, w, pixel_size):
-            block = img_np[y:y + pixel_size, x:x + pixel_size]
+    # 使用比例调整 pixel_size，但确保至少为 1
+    scale_factor = max(1, min(w, h) // 512)  # 根据需要调整基准值
+    adjusted_pixel_size = max(1, pixel_size * scale_factor)
+
+    for y in range(0, h, adjusted_pixel_size):
+        for x in range(0, w, adjusted_pixel_size):
+            block = img_np[y:y + adjusted_pixel_size, x:x + adjusted_pixel_size]
             mean_color = block.mean(axis=(0, 1)).astype(int)
-            img_np[y:y + pixel_size, x:x + pixel_size] = mean_color
+            img_np[y:y + adjusted_pixel_size, x:x + adjusted_pixel_size] = mean_color
 
     return Image.fromarray(img_np)
 
@@ -79,14 +90,17 @@ def oil_paint_pixelation(image, pixel_size):
     img = image.convert("RGB")
     img_np = np.array(img)
     h, w, _ = img_np.shape
-    pixel_size = max(1, round(min(w, h) / 1024) * pixel_size)
 
-    for y in range(0, h, pixel_size):
-        for x in range(0, w, pixel_size):
-            block = img_np[y:y + pixel_size, x:x + pixel_size]
+    # 使用比例调整 pixel_size，但确保至少为 1
+    scale_factor = max(1, min(w, h) // 512)  # 根据需要调整基准值
+    adjusted_pixel_size = max(1, pixel_size * scale_factor)
+
+    for y in range(0, h, adjusted_pixel_size):
+        for x in range(0, w, adjusted_pixel_size):
+            block = img_np[y:y + adjusted_pixel_size, x:x + adjusted_pixel_size]
             block_colors = [tuple(color) for color in block.reshape(-1, 3)]
             most_common_color = Counter(block_colors).most_common(1)[0][0]
-            img_np[y:y + pixel_size, x:x + pixel_size] = most_common_color
+            img_np[y:y + adjusted_pixel_size, x:x + adjusted_pixel_size] = most_common_color
 
     return Image.fromarray(img_np)
 
@@ -105,12 +119,16 @@ def hierarchical_pixelation(image, min_pixel_size, max_pixel_size):
     img = image.convert("RGB")
     img_np = np.array(img)
     h, w, _ = img_np.shape
-    min_pixel_size = max(1, round(min(w, h) / 1024) * min_pixel_size)
-    max_pixel_size = max(1, round(min(w, h) / 1024) * max_pixel_size)
 
-    step = max((max_pixel_size - min_pixel_size) // (w // min_pixel_size), 1)
+    # 使用比例调整 pixel_size，但确保至少为 1
+    scale_factor = max(1, min(w, h) // 512)  # 根据需要调整基准值
+    adjusted_min_pixel_size = max(1, min_pixel_size * scale_factor)
+    adjusted_max_pixel_size = max(1, max_pixel_size * scale_factor)
 
-    for pixel_size in range(min_pixel_size, max_pixel_size + 1, step):
+    # 防止步长为0
+    step = max((adjusted_max_pixel_size - adjusted_min_pixel_size) // max(w // adjusted_min_pixel_size, 1), 1)
+
+    for pixel_size in range(adjusted_min_pixel_size, adjusted_max_pixel_size + 1, step):
         for y in range(0, h, pixel_size):
             for x in range(0, w, pixel_size):
                 block = img_np[y:y + pixel_size, x:x + pixel_size]
@@ -118,3 +136,4 @@ def hierarchical_pixelation(image, min_pixel_size, max_pixel_size):
                 img_np[y:y + pixel_size, x:x + pixel_size] = mean_color
 
     return Image.fromarray(img_np)
+
